@@ -1,0 +1,12 @@
+[versions]
+kotlin = "2.4.21"
+agp = "9.3.1"
+gradle = "9.7.0"
+material-color-utilities = "6.0.0"
+
+[libraries]
+material-color-utilities = { module = "com.materialkolor:material-color-utilities", version.ref = "material-color-utilities" }
+
+[plugins]
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
