@@ -52,9 +52,14 @@ model made from concrete opaque ARGB values, not an AndroidX or Compose type.
 The names intentionally follow Material 3 so a future adapter can map the
 roles without making `rem-core` depend on presentation APIs.
 
-The compatibility baseline is AndroidX's current Material 3 `ColorScheme`
-property/constructor set (see the [API reference](https://developer.android.com/reference/kotlin/androidx/compose/material3/ColorScheme)
-and [AndroidX source](https://android.googlesource.com/platform/frameworks/support/+/androidx-main/compose/material3/material3/src/commonMain/kotlin/androidx/compose/material3/ColorScheme.kt)).
+The compatibility baseline is AndroidX Material 3's `ColorScheme`
+property/constructor set, checked on 2026-10-31 against the [API reference](https://developer.android.com/reference/kotlin/androidx/compose/material3/ColorScheme)
+and [AndroidX source](https://android.googlesource.com/platform/frameworks/support/+/androidx-main/compose/material3/material3/src/commonMain/kotlin/androidx/compose/material3/ColorScheme.kt).
+The exact AndroidX release or source commit used for that check is not recorded
+in the repository history. The source link points to the moving `androidx-main`
+branch, so it is not an immutable snapshot. Recheck the role set and update this
+baseline date and reference deliberately when maintaining Material 3
+compatibility.
 Material 3 deprecates older constructor overloads that omit newer role groups;
 the current API still lists roles such as `background` and `surfaceVariant`.
 Rem includes those currently listed roles while excluding constructor-history
@@ -91,6 +96,15 @@ derivation or substitution in this model.
 UI adapter can perform that boundary conversion without bringing Compose,
 Android UI, or platform presentation dependencies into the core.
 
+### Public API compatibility considerations
+
+`ColorScheme` currently exposes 48 Material 3 semantic color roles. Its public
+data-class constructor, properties, generated `copy()` method, and component
+functions are all part of Rem's public API. Adding, changing, or removing roles
+may affect source or binary compatibility for consumers. Future changes to
+this model should be deliberate and reviewed for compatibility; Rem has not
+established a formal compatibility guarantee or semantic-versioning policy.
+
 ## Extracting a seed from image pixels
 
 `Rem.extractSeedColor(pixels)` accepts decoded pixels as `IntArray` entries in
@@ -98,6 +112,10 @@ Android UI, or platform presentation dependencies into the core.
 row-major order. Rem accepts the flat array and does not require dimensions,
 load files, or decode images; image decoding and any resizing are the caller's
 responsibility.
+
+For large images, callers should consider downsampling before passing pixels
+to Rem to reduce processing time and memory use. Downsampling policy and output
+size are caller-controlled; Rem currently imposes no pixel-count limit.
 
 ```kotlin
 // `decodedPixels` is supplied by the application's platform image decoder.

@@ -58,15 +58,39 @@ class RemGenerationTest {
     @Test
     fun partialAlphaUsesRgbAtFullWeightAfterOpaqueNormalization() {
         val partiallyTransparent = intArrayOf(
-            0x2000_9688,
-            0x8000_9688.toInt(),
-            0xFE00_9688.toInt(),
-            0xFF00_9688.toInt(),
+            *IntArray(40) { 0x01FF_0000 },
+            *IntArray(40) { 0x10FF_0000 },
+            *IntArray(50) { 0xFF00_00FF.toInt() },
         )
-        val opaqueEquivalent = IntArray(partiallyTransparent.size) { 0xFF00_9688.toInt() }
+        val fullWeightRgb = intArrayOf(
+            *IntArray(80) { 0xFFFF_0000.toInt() },
+            *IntArray(50) { 0xFF00_00FF.toInt() },
+        )
+        // This lower red population is a comparison fixture for alpha-weighted treatment
+        // ((40 * 1 + 40 * 16) / 255 rounds to about 3); it is not another Rem implementation.
+        val alphaWeightedComparison = intArrayOf(
+            *IntArray(3) { 0xFFFF_0000.toInt() },
+            *IntArray(50) { 0xFF00_00FF.toInt() },
+        )
 
-        assertEquals(Rem.extractSeedColor(opaqueEquivalent), Rem.extractSeedColor(partiallyTransparent))
-        assertEquals(referenceSeed(partiallyTransparent), Rem.extractSeedColor(partiallyTransparent))
+        val actual = Rem.extractSeedColor(partiallyTransparent)
+        assertEquals(referenceSeed(fullWeightRgb), actual)
+        assertNotEquals(referenceSeed(alphaWeightedComparison), actual)
+    }
+
+    @Test
+    fun imageExtractionDoesNotModifyCallerPixels() {
+        val pixels = intArrayOf(
+            *colorfulPixels(),
+            0x10FF_0000,
+            0x8000_FF00.toInt(),
+            0x0000_00FF,
+        )
+        val snapshot = pixels.copyOf()
+
+        Rem.extractSeedColor(pixels)
+
+        assertTrue(pixels.contentEquals(snapshot))
     }
 
     @Test
@@ -125,6 +149,23 @@ class RemGenerationTest {
     }
 
     @Test
+    fun argbFactoriesRoundTripUnsignedBoundaryBitPatterns() {
+        val boundaries = longArrayOf(
+            0x0000_0000L,
+            0xFFFF_FFFFL,
+            0x8000_0000L,
+            0x7FFF_FFFFL,
+        )
+
+        for (value in boundaries) {
+            assertEquals(value, Argb.fromLong(value).toLong(), "fromLong: 0x${value.toString(16)}")
+            assertEquals(value, Argb.fromInt(value.toInt()).toLong(), "fromInt: 0x${value.toString(16)}")
+        }
+        assertTrue(Argb.fromLong(0x8000_0000L).value < 0)
+        assertTrue(Argb.fromLong(0x7FFF_FFFFL).value > 0)
+    }
+
+    @Test
     fun seedAlphaIsIgnoredAndGeneratedRolesAreOpaque() {
         val translucentSeed = Argb.fromInt(0x1234_5678)
         val opaqueSeed = Argb.fromInt(0xFF34_5678.toInt())
@@ -144,6 +185,7 @@ class RemGenerationTest {
         assertFailsWith<IllegalArgumentException> { SchemeOptions(contrastLevel = 1.0001) }
         assertFailsWith<IllegalArgumentException> { SchemeOptions(contrastLevel = Double.NaN) }
         assertFailsWith<IllegalArgumentException> { SchemeOptions(contrastLevel = Double.POSITIVE_INFINITY) }
+        assertFailsWith<IllegalArgumentException> { SchemeOptions(contrastLevel = Double.NEGATIVE_INFINITY) }
     }
 
     @Test
