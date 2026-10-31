@@ -37,10 +37,15 @@ Android variant. The probe was removed afterward.
 
 The MCU artifact exposes the APIs needed to select a seed from decoded pixels:
 
-- `QuantizerCelebi.quantize(pixels: IntArray, maxColors: Int)` returns a
-  `Map<Int, Int>` of ARGB colors to pixel populations.
-- `Score.score(colorsToPopulation: Map<Int, Int>, ...)` ranks suitable seed
-  colors and is available in common code.
+- `QuantizerCelebi.quantize(pixels: IntArray, maxColors: Int): Map<Int, Int>`
+  has no `maxColors` default. It runs the Wu quantizer to initialize
+  Wsmeans/K-means and returns ARGB color to population counts. MCU's extraction
+  guidance calls 128 a reasonable `maxColors` value.
+- `Score.score(colorsToPopulation: Map<Int, Int>, desired: Int = 4,
+  fallbackColorArgb: Int? = 0xFF4285F4, filter: Boolean = true): List<Int>`
+  ranks eligible colors best-first. It filters low-chroma and low-excited-hue
+  colors by default; if none qualify, its default fallback is Google Blue. A
+  null fallback allows an empty result. Both APIs are in common code.
 - `Hct` and `TonalPalette` APIs are also available in common code.
 
 Google's MCU guidance leaves image decoding to the caller. Rem can therefore
@@ -50,10 +55,20 @@ for that contract; it supplies higher-level image source/loading integration.
 Revisit it only if Rem later chooses to accept image objects or encoded image
 bytes itself.
 
-The future public contract still needs to specify pixel order, alpha handling,
-empty-input behavior, image-size limits, and seed-ranking tie behavior. This
-dependency review does not select those behaviors or implement image
-extraction.
+Rem's current extraction contract accepts flat decoded `0xAARRGGBB` pixels in
+row-major order. It discards fully transparent pixels and treats nonzero-alpha
+pixels as opaque RGB because MCU quantization is alpha-agnostic. Empty or
+all-transparent input, and input with no MCU-eligible scored colors, fail with
+`IllegalArgumentException`. Rem quantizes to at most 128 colors, then requests
+the single highest-scoring result with MCU's default filtering and no fallback
+color. Image decoding and resizing remain the caller's responsibility.
+
+In the resolved 6.0.0 source, quantization groups packed ARGB inputs before
+converting their RGB channels to Lab; the Lab conversion ignores alpha.
+Normalizing visible pixels to opaque before calling the quantizer prevents
+identical RGB values with different input alpha from being counted as separate
+quantizer entries. Wsmeans uses a fixed internal random seed, supporting
+repeatable output for identical ordered input and dependency version.
 
 ## Toolchain compatibility
 

@@ -3,12 +3,14 @@ package dev.rem
 import com.materialkolor.dynamiccolor.ColorSpec
 import com.materialkolor.dynamiccolor.DynamicScheme
 import com.materialkolor.hct.Hct
+import com.materialkolor.quantize.QuantizerCelebi
 import com.materialkolor.scheme.SchemeContent
 import com.materialkolor.scheme.SchemeExpressive
 import com.materialkolor.scheme.SchemeFidelity
 import com.materialkolor.scheme.SchemeMonochrome
 import com.materialkolor.scheme.SchemeTonalSpot
 import com.materialkolor.scheme.SchemeVibrant
+import com.materialkolor.score.Score
 import dev.rem.api.Argb
 import dev.rem.api.ColorScheme
 import dev.rem.api.Rem
@@ -22,6 +24,73 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 class RemGenerationTest {
+    @Test
+    fun colorfulPixelCollectionMatchesMcuQuantizationAndScoring() {
+        val pixels = colorfulPixels()
+
+        assertEquals(referenceSeed(pixels), Rem.extractSeedColor(pixels))
+    }
+
+    @Test
+    fun singleColorAndMultipleDistinctColorsMatchMcuReference() {
+        val singleColor = IntArray(64) { 0xFF67_50A4.toInt() }
+        val distinctColors = intArrayOf(
+            *IntArray(40) { 0xFFE9_1E63.toInt() },
+            *IntArray(30) { 0xFF00_9688.toInt() },
+            *IntArray(20) { 0xFFFF_C107.toInt() },
+        )
+
+        assertEquals(referenceSeed(singleColor), Rem.extractSeedColor(singleColor))
+        assertEquals(referenceSeed(distinctColors), Rem.extractSeedColor(distinctColors))
+    }
+
+    @Test
+    fun fullyTransparentRgbDoesNotInfluenceSeed() {
+        val visiblePixels = IntArray(24) { 0xFF00_9688.toInt() }
+        val withTransparentPixels = IntArray(visiblePixels.size + 200) { index ->
+            if (index < 200) 0x00FF_0000 else visiblePixels[index - 200]
+        }
+
+        assertEquals(Rem.extractSeedColor(visiblePixels), Rem.extractSeedColor(withTransparentPixels))
+        assertEquals(referenceSeed(withTransparentPixels), Rem.extractSeedColor(withTransparentPixels))
+    }
+
+    @Test
+    fun partialAlphaUsesRgbAtFullWeightAfterOpaqueNormalization() {
+        val partiallyTransparent = intArrayOf(
+            0x2000_9688,
+            0x8000_9688.toInt(),
+            0xFE00_9688.toInt(),
+            0xFF00_9688.toInt(),
+        )
+        val opaqueEquivalent = IntArray(partiallyTransparent.size) { 0xFF00_9688.toInt() }
+
+        assertEquals(Rem.extractSeedColor(opaqueEquivalent), Rem.extractSeedColor(partiallyTransparent))
+        assertEquals(referenceSeed(partiallyTransparent), Rem.extractSeedColor(partiallyTransparent))
+    }
+
+    @Test
+    fun emptyTransparentAndUnscorablePixelsFailPredictably() {
+        assertFailsWith<IllegalArgumentException> { Rem.extractSeedColor(intArrayOf()) }
+        assertFailsWith<IllegalArgumentException> {
+            Rem.extractSeedColor(intArrayOf(0x00FF_0000, 0x0000_FF00))
+        }
+        assertFailsWith<IllegalArgumentException> {
+            Rem.extractSeedColor(IntArray(32) { 0xFF77_7777.toInt() })
+        }
+    }
+
+    @Test
+    fun extractionIsDeterministicAndWorksWithPairedSchemeGeneration() {
+        val pixels = colorfulPixels()
+        val seed = Rem.extractSeedColor(pixels)
+
+        assertEquals(seed, Rem.extractSeedColor(pixels.copyOf()))
+        val schemes = Rem.createSchemes(seed)
+        assertEquals(Rem.createScheme(seed, ThemeMode.LIGHT), schemes.light)
+        assertEquals(Rem.createScheme(seed, ThemeMode.DARK), schemes.dark)
+    }
+
     @Test
     fun everySupportedStyleAndModeMatchesMcuReference() {
         for (style in ThemeStyle.entries) {
@@ -107,6 +176,23 @@ class RemGenerationTest {
             ThemeStyle.VIBRANT -> SchemeVibrant(source, isDark, contrast, spec)
         }
     }
+
+    private fun referenceSeed(pixels: IntArray): Argb {
+        val opaqueVisiblePixels = pixels
+            .filter { it ushr 24 != 0 }
+            .map { it or OPAQUE_ALPHA }
+            .toIntArray()
+        val quantized = QuantizerCelebi.quantize(opaqueVisiblePixels, 128)
+        val color = Score.score(quantized, desired = 1, fallbackColorArgb = null).firstOrNull()
+        return Argb.fromInt(requireNotNull(color))
+    }
+
+    private fun colorfulPixels(): IntArray = intArrayOf(
+        *IntArray(90) { 0xFFE9_1E63.toInt() },
+        *IntArray(70) { 0xFF00_9688.toInt() },
+        *IntArray(40) { 0xFFFF_C107.toInt() },
+        *IntArray(25) { 0xFF3F_51B5.toInt() },
+    )
 
     private fun DynamicScheme.toRemColorScheme() = ColorScheme(
         primary = Argb.fromInt(primary),

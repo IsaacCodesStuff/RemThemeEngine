@@ -91,10 +91,47 @@ derivation or substitution in this model.
 UI adapter can perform that boundary conversion without bringing Compose,
 Android UI, or platform presentation dependencies into the core.
 
+## Extracting a seed from image pixels
+
+`Rem.extractSeedColor(pixels)` accepts decoded pixels as `IntArray` entries in
+`0xAARRGGBB` format. When sourced from an image, provide the pixels in
+row-major order. Rem accepts the flat array and does not require dimensions,
+load files, or decode images; image decoding and any resizing are the caller's
+responsibility.
+
+```kotlin
+// `decodedPixels` is supplied by the application's platform image decoder.
+val seed = Rem.extractSeedColor(decodedPixels)
+val lightAndDark = Rem.createSchemes(seed)
+```
+
+Pixels with alpha `0x00` are removed before quantization so hidden RGB values
+cannot affect the result. Any nonzero-alpha pixel is retained and normalized
+to opaque using its RGB channels. MCU's quantizer converts RGB to Lab and does
+not composite or weight by alpha. Since Rem has no knowledge of the eventual
+background, partially transparent pixels contribute their uncomposited RGB
+at full pixel weight; this policy is deterministic and avoids assuming a
+white, black, or other compositing color. Pixels with the same RGB therefore
+contribute together even when their input alpha differs.
+
+Empty and all-transparent inputs throw `IllegalArgumentException`. Rem passes
+the visible opaque pixels through MCU `QuantizerCelebi.quantize` with
+`maxColors = 128`, MCU's documented reasonable default. It then calls
+`Score.score` with its default filtering enabled, `desired = 1`, and
+`fallbackColorArgb = null`. The first returned color is the highest-ranked
+eligible seed. When scoring finds no eligible color, Rem throws
+`IllegalArgumentException` instead of returning MCU's generic Google Blue
+fallback, which would be unrelated to the supplied pixels.
+
+MCU's Wsmeans quantizer uses a fixed internal random seed. Repeated calls with
+the same ordered input and the same MCU version therefore produce the same
+seed. Rem does not promise the same output across dependency upgrades or
+different pixel orderings.
+
 ## Limitations
 
-- Generation starts from a caller-supplied seed only; pixel quantization,
-  image input, and seed scoring are not implemented in Rem yet.
+- Rem extracts seeds from decoded pixel arrays only; it does not decode or
+  resize image files.
 - Rem is UI-framework independent and does not include Compose adapters.
 - The role model follows the current AndroidX Material 3 `ColorScheme` role
   set; it does not promise compatibility with every framework-specific API or

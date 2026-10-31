@@ -10,8 +10,8 @@ and other UI frameworks.
 
 Rem uses Google's Material Color Utilities through the standalone
 `com.materialkolor:material-color-utilities:6.0.0` artifact. Seed-based color
-generation is available in `rem-core`; image-based seed selection is not yet
-implemented.
+generation and seed extraction from caller-decoded ARGB pixels are available
+in `rem-core`; Rem does not decode image files.
 
 ## Usage
 
@@ -35,7 +35,8 @@ val lightAndDark = Rem.createSchemes(seed, SchemeOptions(style = ThemeStyle.FIDE
 ```
 
 See [docs/color-generation.md](docs/color-generation.md) for the API contract,
-style mappings, role meanings, contrast behavior, and current limitations.
+style mappings, role meanings, contrast behavior, pixel input contract, and
+current limitations.
 
 See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for dependency provenance
 and licensing information. See [docs/dependency-review.md](docs/dependency-review.md)

@@ -1,9 +1,21 @@
 package dev.rem.api
 
+import dev.rem.internal.McuImageSeedExtractor
 import dev.rem.internal.McuSchemeGenerator
 
-/** Entry point for seed-based dynamic color generation. */
+/** Entry point for image seed extraction and dynamic color generation. */
 object Rem {
+    /**
+     * Extracts a theme seed from decoded pixels encoded as `0xAARRGGBB`.
+     *
+     * When pixels come from an image, supply them in row-major order. Fully
+     * transparent pixels are ignored; non-transparent pixels use their RGB
+     * channels at full weight because MCU quantization does not composite or
+     * weight alpha. Throws [IllegalArgumentException] for empty/all-transparent
+     * input or when MCU scoring finds no eligible theme color.
+     */
+    fun extractSeedColor(pixels: IntArray): Argb = McuImageSeedExtractor.extractSeedColor(pixels)
+
     /** Generates one scheme in the explicitly selected [mode]. */
     fun createScheme(
         seed: Argb,
