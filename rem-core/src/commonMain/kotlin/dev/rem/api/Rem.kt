@@ -31,4 +31,19 @@ object Rem {
         light = createScheme(seed, ThemeMode.LIGHT, options),
         dark = createScheme(seed, ThemeMode.DARK, options),
     )
+
+    /**
+     * Generates a light/dark theme with additional caller-defined color roles.
+     *
+     * Custom colors are indexed by their case-sensitive definition IDs. An empty [customColors]
+     * list returns the regular light/dark schemes with an empty custom color map.
+     */
+    fun createTheme(
+        seed: Argb,
+        customColors: List<CustomColorDefinition>,
+        options: SchemeOptions = SchemeOptions(),
+    ): ThemeWithCustomColors {
+        validateCustomColorDefinitions(customColors)
+        return McuSchemeGenerator.createTheme(seed, customColors, options)
+    }
 }

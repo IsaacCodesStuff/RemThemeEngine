@@ -16,13 +16,6 @@ kotlin {
         }
     }
 
-    val iosTargets = listOf(iosArm64(), iosSimulatorArm64())
-    iosTargets.forEach { target ->
-        target.binaries.framework {
-            baseName = "RemCore"
-        }
-    }
-
     sourceSets {
         commonMain.dependencies {
             implementation(libs.material.color.utilities)

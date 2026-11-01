@@ -24,14 +24,14 @@ also has a CMF style; Rem does not expose or implement that style or Android
 
 Gradle's published module metadata resolves Android, JVM, iOS device ARM64, and
 iOS simulator ARM64 variants. The artifact also publishes JS, Wasm JS, and
-macOS ARM64 variants. It does **not** publish an iOS x64 variant. Rem therefore
-configures the requested Android/JVM/iOS targets without the legacy Intel iOS
-simulator target.
+macOS ARM64 variants. It does **not** publish an iOS x64 variant. Rem currently
+configures only Android and JVM desktop targets; the artifact's Apple variants
+are not used by Rem's build.
 
 The artifact's common API metadata resolves through Rem's `commonMain`, and
-common tests compile against it for JVM and both iOS ARM64 targets. An Android
-compile probe importing MCU's HCT API also compiled against the published
-Android variant. The probe was removed afterward.
+Rem's common tests compile and run on JVM. An Android compile probe importing
+MCU's HCT API also compiled against the published Android variant. The probe
+was removed afterward.
 
 ## Image processing API
 

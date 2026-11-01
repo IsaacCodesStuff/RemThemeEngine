@@ -20,9 +20,8 @@ UI framework integration are left to applications and future adapters.
 
 ## Supported targets
 
-The `rem-core` module configures Android, JVM desktop, iOS device ARM64, and iOS
-simulator ARM64 targets. Configured targets do not by themselves establish
-Swift interoperability or successful framework integration in an application.
+The `rem-core` and `rem-compose` modules configure Android and JVM desktop
+targets. The sample application currently targets Android.
 
 ## Optional Compose adapter
 
@@ -133,21 +132,19 @@ See [the full role list and Material 3 compatibility notes](docs/color-generatio
 
 ## Build and test from source
 
-Run these commands from the repository root. They use the Gradle wrapper and
-compile production sources for each target:
+Run these commands from the repository root. They use the Gradle wrapper to run
+the JVM tests and compile library production sources for Android and JVM, then
+compile the Android sample:
 
 ```shell
 ./gradlew :rem-core:jvmTest
 ./gradlew :rem-core:compileKotlinJvm
-./gradlew :rem-core:compileKotlinAndroid
-./gradlew :rem-core:compileKotlinIosArm64
-./gradlew :rem-core:compileKotlinIosSimulatorArm64
+./gradlew :rem-core:compileAndroidMain
+./gradlew :rem-compose:jvmTest
+./gradlew :rem-compose:compileKotlinJvm
+./gradlew :rem-compose:compileAndroidMain
+./gradlew :sample:compileDebugKotlin
 ```
-
-The iOS source compilation tasks require a host/toolchain that supports the
-Apple targets. Linking iOS frameworks and testing calls from Swift require
-macOS/Xcode. Framework linking and Swift interoperability have not been
-verified on the current Linux development host.
 
 ## Documentation
 
@@ -160,9 +157,8 @@ verified on the current Linux development host.
 
 Rem is under development and has not been published. No Maven coordinates or
 stable API compatibility guarantees have been established. Android and JVM
-production-source compile tasks and JVM tests are configured. Configured iOS
-targets do not imply that framework linking or Swift interoperability has
-been tested.
+production-source compile tasks and JVM tests are configured. Rem currently
+targets Android and JVM desktop; Apple platform targets are not configured.
 
 ## License
 
