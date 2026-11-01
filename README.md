@@ -24,6 +24,49 @@ The `rem-core` module configures Android, JVM desktop, iOS device ARM64, and iOS
 simulator ARM64 targets. Configured targets do not by themselves establish
 Swift interoperability or successful framework integration in an application.
 
+## Optional Compose adapter
+
+`rem-compose` is an optional Android and desktop JVM adapter. `rem-core` remains
+independent of Compose. The adapter uses Compose Material 3, currently an alpha
+release.
+
+```kotlin
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import dev.rem.api.Argb
+import dev.rem.api.Rem
+import dev.rem.compose.toMaterial3ColorScheme
+
+val seed = Argb.fromLong(0xFF6750A4L)
+val schemes = Rem.createSchemes(seed)
+
+@Composable
+fun AppTheme(dark: Boolean, content: @Composable () -> Unit) {
+    val remScheme = if (dark) schemes.dark else schemes.light
+    MaterialTheme(
+        colorScheme = remScheme.toMaterial3ColorScheme(),
+        content = content,
+    )
+}
+```
+
+The caller selects the light or dark Rem scheme; `MaterialTheme` provides the
+selected Compose theme to its content.
+
+## Sample application
+
+The Android sample in [`sample/`](sample/) is a consumer of both `rem-core`
+and `rem-compose`. It demonstrates switching between generated light and dark
+schemes and using Material 3 components with the selected roles. Open the
+project in Android Studio and run the `sample` app configuration, or install it
+on a connected device with `./gradlew :sample:installDebug`.
+
+The sample is Android-only for now. With the current AGP 9 toolchain, the
+Android application plugin cannot be applied in the same module as the Kotlin
+Multiplatform plugin, so adding desktop would require a separate JVM app module
+and additional run configuration. That would add structure beyond this small
+consumer example.
+
 ## Quick start: seed-based generation
 
 ```kotlin

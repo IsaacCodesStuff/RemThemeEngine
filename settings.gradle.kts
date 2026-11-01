@@ -17,3 +17,5 @@ dependencyResolutionManagement {
 rootProject.name = "Rem"
 
 include(":rem-core")
+include(":rem-compose")
+include(":sample")
